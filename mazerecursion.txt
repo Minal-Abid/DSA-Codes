@@ -1,0 +1,99 @@
+#include <iostream>
+using namespace std;
+
+const int MAX = 10;
+
+bool isValid(int i, int j, int n, int m, int maze[MAX][MAX], bool visited[MAX][MAX]) {
+    return (i >= 0 && j >= 0 && i < n && j < m && maze[i][j] == 1 && !visited[i][j]);
+}
+
+bool pathExists(int maze[MAX][MAX], int i, int j, int n, int m, bool visited[MAX][MAX]) {
+    if (i == n - 1 && j == m - 1) return true;
+    visited[i][j] = true;
+
+    int dx[] = { 1, 0, -1, 0 };
+    int dy[] = { 0, 1, 0, -1 };
+
+    for (int d = 0; d < 4; d++) {
+        int ni = i + dx[d];
+        int nj = j + dy[d];
+        if (isValid(ni, nj, n, m, maze, visited)) {
+            if (pathExists(maze, ni, nj, n, m, visited)) return true;
+        }
+    }
+    visited[i][j] = false;
+    return false;
+}
+
+void printPaths(int maze[MAX][MAX], int i, int j, int n, int m, bool visited[MAX][MAX], char path[], int idx) {
+    if (i == n - 1 && j == m - 1) {
+        path[idx] = '\0';
+        cout << path << endl;
+        return;
+    }
+    visited[i][j] = true;
+
+    if (i + 1 < n && maze[i + 1][j] == 1 && !visited[i + 1][j]) {
+        path[idx] = 'D';
+        printPaths(maze, i + 1, j, n, m, visited, path, idx + 1);
+    }
+    if (j + 1 < m && maze[i][j + 1] == 1 && !visited[i][j + 1]) {
+        path[idx] = 'R';
+        printPaths(maze, i, j + 1, n, m, visited, path, idx + 1);
+    }
+    if (i - 1 >= 0 && maze[i - 1][j] == 1 && !visited[i - 1][j]) {
+        path[idx] = 'U';
+        printPaths(maze, i - 1, j, n, m, visited, path, idx + 1);
+    }
+    if (j - 1 >= 0 && maze[i][j - 1] == 1 && !visited[i][j - 1]) {
+        path[idx] = 'L';
+        printPaths(maze, i, j - 1, n, m, visited, path, idx + 1);
+    }
+    visited[i][j] = false;
+}
+
+int countPaths(int maze[MAX][MAX], int i, int j, int n, int m, bool visited[MAX][MAX]) {
+    if (i == n - 1 && j == m - 1) return 1;
+    visited[i][j] = true;
+    int total = 0;
+
+    if (i + 1 < n && maze[i + 1][j] == 1 && !visited[i + 1][j])
+        total += countPaths(maze, i + 1, j, n, m, visited);
+    if (j + 1 < m && maze[i][j + 1] == 1 && !visited[i][j + 1])
+        total += countPaths(maze, i, j + 1, n, m, visited);
+    if (i - 1 >= 0 && maze[i - 1][j] == 1 && !visited[i - 1][j])
+        total += countPaths(maze, i - 1, j, n, m, visited);
+    if (j - 1 >= 0 && maze[i][j - 1] == 1 && !visited[i][j - 1])
+        total += countPaths(maze, i, j - 1, n, m, visited);
+
+    visited[i][j] = false;
+    return total;
+}
+
+int main() {
+    int maze[MAX][MAX] = {
+        {1, 0, 1},
+        {1, 1, 0},
+        {0, 1, 1}
+    };
+    int n = 3, m = 3;
+    bool visited[MAX][MAX] = { false };
+
+    if (maze[0][0] == 0) cout << "Start blocked";
+    else if (pathExists(maze, 0, 0, n, m, visited)) cout << "Path exists!\n";
+    else cout << "No path\n";
+
+    cout << "\nAll paths:\n";
+    char path[100];
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            visited[i][j] = false;
+    printPaths(maze, 0, 0, n, m, visited, path, 0);
+
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            visited[i][j] = false;
+    cout << "\nTotal paths: " << countPaths(maze, 0, 0, n, m, visited);
+
+    return 0;
+}
