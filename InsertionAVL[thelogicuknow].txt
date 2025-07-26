@@ -1,0 +1,226 @@
+#include<iostream>
+using namespace std;
+
+class node {
+public:
+    int data, height;
+    node* left, * right;
+    node() {
+        height = 1;
+        left = right = nullptr;
+    }
+};
+
+class AVL : public node {
+    node* root = nullptr;
+
+    int getHeight(node* itr) {
+        if (!itr) return 0;
+        return itr->height;
+    }
+
+    node* rightRotation(node* itr) {
+        node* child = itr->left;
+        node* childRight = child->right;
+        child->right = itr;
+        itr->left = childRight;
+
+        itr->height = 1 + max(getHeight(itr->left), getHeight(itr->right));
+        child->height = 1 + max(getHeight(child->left), getHeight(child->right));
+
+        return child;
+    }
+
+    node* leftRotation(node* itr) {
+        node* child = itr->right;
+        node* childLeft = child->left;
+
+        child->left = itr;
+        itr->right = childLeft;
+
+        itr->height = 1 + max(getHeight(itr->left), getHeight(itr->right));
+        child->height = 1 + max(getHeight(child->left), getHeight(child->right));
+
+        return child;
+    }
+
+    int getBalance(node* itr) {
+        if (!itr) return 0;
+        return getHeight(itr->left) - getHeight(itr->right);
+    }
+
+public:
+    node* insert(node* itr, int data) {
+        if (!itr) {
+            itr = new node();
+            itr->data = data;
+            return itr;
+        }
+        if (data < itr->data) {
+            itr->left = insert(itr->left, data);
+        } else if (data > itr->data) {
+            itr->right = insert(itr->right, data);
+        } else {
+            return itr;
+        }
+
+        itr->height = 1 + max(getHeight(itr->left), getHeight(itr->right));
+        int balance = getBalance(itr);
+
+        if (balance > 1 && data < itr->left->data)
+            return rightRotation(itr);
+        else if (balance < -1 && data > itr->right->data)
+            return leftRotation(itr);
+        else if (balance > 1 && data > itr->left->data) {
+            itr->left = leftRotation(itr->left);
+            return rightRotation(itr);
+        } else if (balance < -1 && data < itr->right->data) {
+            itr->right = rightRotation(itr->right);
+            return leftRotation(itr);
+        } else {
+            return itr;
+        }
+    }
+
+    void insert(int data) {
+        root = insert(root, data);
+    }
+
+    node* deleteNode(node* itr, int data) {
+        if (!itr) return nullptr;
+
+        if (data < itr->data) {
+            itr->left = deleteNode(itr->left, data);
+        } else if (data > itr->data) {
+            itr->right = deleteNode(itr->right, data);
+        } else {
+            if (!itr->left && !itr->right) {
+                delete itr;
+                return NULL;
+            } else if (itr->left && !itr->right) {
+                node* temp = itr->left;
+                delete itr;
+                return temp;
+            } else if (!itr->left && itr->right) {
+                node* temp = itr->right;
+                delete itr;
+                return temp;
+            } else {
+                node* curr = itr->right;
+                while (curr->left) {
+                    curr = curr->left;
+                }
+                itr->data = curr->data;
+                itr->right = deleteNode(itr->right, curr->data);
+            }
+        }
+
+        if (!itr) return itr;
+
+        itr->height = 1 + max(getHeight(itr->left), getHeight(itr->right));
+        int balance = getBalance(itr);
+
+        if (balance > 1) {
+            if (getBalance(itr->left) >= 0) {
+                return rightRotation(itr);
+            } else {
+                itr->left = leftRotation(itr->left);
+                return rightRotation(itr);
+            }
+        } else if (balance < -1) {
+            if (getBalance(itr->right) <= 0) {
+                return leftRotation(itr);
+            } else {
+                itr->right = rightRotation(itr->right);
+                return leftRotation(itr);
+            }
+        } else {
+            return itr;
+        }
+    }
+
+    void deleteNode(int data) {
+        root = deleteNode(root, data);
+    }
+
+    void inorder(node* itr) {
+        if (itr == NULL) return;
+        inorder(itr->left);
+        cout << itr->data << " ";
+        inorder(itr->right);
+    }
+
+    void inorder() {
+        inorder(root);
+    }
+
+    void preorder(node* itr) {
+        if (itr == NULL) return;
+        cout << itr->data << " ";
+        preorder(itr->left);
+        preorder(itr->right);
+    }
+
+    void preorder() {
+        preorder(root);
+    }
+
+    void postorder(node* itr) {
+        if (itr == NULL) return;
+        postorder(itr->left);
+        postorder(itr->right);
+        cout << itr->data << " ";
+    }
+
+    void postorder() {
+        postorder(root);
+    }
+
+    bool search(node* itr, int data) {
+        if (!itr) return false;
+        if (itr->data == data) {
+            cout << "Element found: " << itr->data << "\n";
+            return true;
+        } else if (data < itr->data) {
+            return search(itr->left, data);
+        } else {
+            return search(itr->right, data);
+        }
+    }
+
+    bool search(int data) {
+        return search(root, data);
+    }
+};
+
+int main() {
+    AVL tree;
+    tree.insert(10);
+    tree.insert(20);
+    tree.insert(30);
+    tree.insert(40);
+    tree.insert(50);
+    tree.insert(70);
+    tree.insert(5);
+    tree.insert(100);
+    tree.insert(95);
+
+    cout << "Inorder traversal: ";
+    tree.inorder();
+    cout << "\nPreorder traversal: ";
+    tree.preorder();
+    cout << "\nPostorder traversal: ";
+    tree.postorder();
+
+    cout << "\n\nDeleting 50...\n";
+    tree.deleteNode(50);
+    cout << "After deletion (Inorder): ";
+    tree.inorder();
+
+    cout << "\n\nSearching for 20: ";
+    tree.search(20);
+    cout << "Searching for 50: ";
+    tree.search(50);
+
+    return 0;
+}

@@ -1,0 +1,186 @@
+#include <iostream>
+using namespace std;
+
+class Node {
+public:
+	int key;
+	int height;
+	Node* left;
+	Node* right;
+
+	Node(int k) {
+		key = k;
+		height = 1;
+		left = right = nullptr;
+	}
+};
+
+class AVLTree {
+private:
+	Node* root;
+	int count = 0;
+
+	// Changed parameter name from 'node' to 'itr'
+	int height(Node* itr) {
+		return itr ? itr->height : 0;
+	}
+
+	int max(int a, int b) {
+		return (a > b) ? a : b;
+	}
+
+	// Changed parameter name from 'node' to 'itr'
+	int getBalance(Node* itr) {
+		return itr ? height(itr->left) - height(itr->right) : 0;
+	}
+
+	Node* rightRotate(Node* y) {
+		Node* x = y->left;
+		Node* T2 = x->right;
+
+		x->right = y;
+		y->left = T2;
+
+		y->height = 1 + max(height(y->left), height(y->right));
+		x->height = 1 + max(height(x->left), height(x->right));
+
+		return x;
+	}
+
+	Node* leftRotate(Node* x) {
+		Node* y = x->right;
+		Node* T2 = y->left;
+
+		y->left = x;
+		x->right = T2;
+
+		x->height = 1 + max(height(x->left), height(x->right));
+		y->height = 1 + max(height(y->left), height(y->right));
+
+		return y;
+	}
+
+	// Changed parameter name from 'node' to 'itr'
+	Node* insertNode(Node* itr, int key) {
+		if (!itr) return new Node(key);
+
+		if (key < itr->key)
+			itr->left = insertNode(itr->left, key);
+		else if (key > itr->key)
+			itr->right = insertNode(itr->right, key);
+		else
+			return itr;
+
+		itr->height = 1 + max(height(itr->left), height(itr->right));
+		int balance = getBalance(itr);
+
+		// LL
+		if (balance > 1 && key < itr->left->key)
+			return rightRotate(itr);
+		// RR
+		if (balance < -1 && key > itr->right->key)
+			return leftRotate(itr);
+		// LR
+		if (balance > 1 && key > itr->left->key) {
+			itr->left = leftRotate(itr->left);
+			return rightRotate(itr);
+		}
+		// RL
+		if (balance < -1 && key < itr->right->key) {
+			itr->right = rightRotate(itr->right);
+			return leftRotate(itr);
+		}
+
+		return itr;
+	}
+
+	// Changed parameter name from 'node' to 'itr'
+	void preOrder(Node* itr) {
+		if (!itr) return;
+		cout << itr->key << " ";
+		preOrder(itr->left);
+		preOrder(itr->right);
+	}
+
+	// Changed parameter name from 'node' to 'itr'
+	int kthSmallestUtil(Node* itr, int k) {
+		if (!itr) return -1;
+
+		int left = kthSmallestUtil(itr->left, k);
+		if (left != -1) return left;
+
+		count++;
+		if (count == k) return itr->key;
+
+		return kthSmallestUtil(itr->right, k);
+	}
+
+	// Changed parameter names from 'n1' and 'n2' to 'itr1' and 'itr2'
+	bool areIdentical(Node* itr1, Node* itr2) {
+		if (!itr1 && !itr2) return true;
+		if (!itr1 || !itr2) return false;
+		return (itr1->key == itr2->key) &&
+			areIdentical(itr1->left, itr2->left) &&
+			areIdentical(itr1->right, itr2->right);
+	}
+
+public:
+	AVLTree() {
+		root = nullptr;
+	}
+
+	void insert(int key) {
+		root = insertNode(root, key);
+	}
+
+	void display() {
+		cout << "Preorder traversal: ";
+		preOrder(root);
+		cout << endl;
+	}
+
+	int getTreeHeight() {
+		return height(root);
+	}
+
+	int kthSmallest(int k) {
+		count = 0;
+		return kthSmallestUtil(root, k);
+	}
+
+	bool areIdentical(AVLTree& other) {
+		return areIdentical(this->root, other.root);
+	}
+};
+
+int main() {
+	AVLTree tree;
+	tree.insert(30); // LL
+	tree.insert(20); // LR
+	tree.insert(25);
+	tree.insert(40); // Normal
+	tree.insert(50); // RR
+	tree.insert(45); // RL
+
+	tree.display(); // Preorder output
+
+	cout << "Height of tree: " << tree.getTreeHeight() << endl;
+	cout << "3rd smallest element: " << tree.kthSmallest(3) << endl;
+
+	// Comparing two trees
+	AVLTree tree2;
+	tree2.insert(30);
+	tree2.insert(20);
+	tree2.insert(25);
+	tree2.insert(40);
+	tree2.insert(50);
+	tree2.insert(45);
+
+	cout << "Trees are identical: " << (tree.areIdentical(tree2) ? "Yes" : "No") << endl;
+
+	// Modify tree2 and recheck
+	tree2.insert(100);
+	cout << "Trees are identical after change: " << (tree.areIdentical(tree2) ? "Yes" : "No") << endl;
+
+	return 0;
+}

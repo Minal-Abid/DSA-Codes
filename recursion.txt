@@ -1,0 +1,81 @@
+🧭 1. Count all paths in an m x n grid (Classic)
+➤ Description:
+Count how many ways you can go from (0,0) to (m-1,n-1) only moving right or down.
+
+🧠 Recursion Insight:
+At each step, you either go right or go down.
+
+🔁 Recursive Formula:
+Copy
+Edit
+f(m, n) = f(m-1, n) + f(m, n-1)
+👉 Code:
+cpp
+Copy
+Edit
+int countPaths(int m, int n) {
+    if (m == 1 || n == 1) return 1;
+    return countPaths(m - 1, n) + countPaths(m, n - 1);
+}
+🚫 2. Maze solving using recursion (optional)
+Print all paths or return if path exists from top-left to bottom-right (with obstacles).
+(Ask if you want code for this too)
+
+🌀 Other Classic Recursion Lab Questions
+🔄 3. Factorial using recursion
+cpp
+Copy
+Edit
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+🔄 4. Fibonacci using recursion
+cpp
+Copy
+Edit
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+🔢 5. Sum of digits using recursion
+cpp
+Copy
+Edit
+int sumDigits(int n) {
+    if (n == 0) return 0;
+    return (n % 10) + sumDigits(n / 10);
+}
+🔢 6. Reverse a number using recursion
+cpp
+Copy
+Edit
+int reverseNum(int n, int rev = 0) {
+    if (n == 0) return rev;
+    return reverseNum(n / 10, rev * 10 + (n % 10));
+}
+🔠 7. Check palindrome using recursion (string/number)
+cpp
+Copy
+Edit
+bool isPalindrome(string s, int i, int j) {
+    if (i >= j) return true;
+    return s[i] == s[j] && isPalindrome(s, i + 1, j - 1);
+}
+⬆️ 8. Power (a^b) using recursion
+cpp
+Copy
+Edit
+int power(int a, int b) {
+    if (b == 0) return 1;
+    return a * power(a, b - 1);
+}
+🔄 9. Recursively reverse an array
+cpp
+Copy
+Edit
+void reverseArray(int arr[], int start, int end) {
+    if (start >= end) return;
+    swap(arr[start], arr[end]);
+    reverseArray(arr, start + 1, end - 1);
+}

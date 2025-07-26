@@ -1,0 +1,338 @@
+#include <iostream>
+
+using namespace std;
+
+class Node {
+public:
+	int key;
+	int height;
+	Node* left;
+	Node* right;
+
+	Node(int k) {
+		key = k;
+		height = 1;
+		left = right = nullptr;
+	}
+};
+
+class AVLTree {
+private:
+	Node* root;
+	int count = 0;
+
+	int max(int a, int b) {
+		return (a > b) ? a : b;
+	}
+
+	int height(Node* itr) {
+		return itr ? itr->height : 0;
+	}
+
+	int getBalance(Node* itr) {
+		return itr ? height(itr->left) - height(itr->right) : 0;
+	}
+
+	Node* rightRotate(Node* y) {
+		Node* x = y->left;
+		Node* T2 = x->right;
+
+		x->right = y;
+		y->left = T2;
+
+		y->height = 1 + max(height(y->left), height(y->right));
+		x->height = 1 + max(height(x->left), height(x->right));
+
+		return x;
+	}
+
+	Node* leftRotate(Node* x) {
+		Node* y = x->right;
+		Node* T2 = y->left;
+
+		y->left = x;
+		x->right = T2;
+
+		x->height = 1 + max(height(x->left), height(x->right));
+		y->height = 1 + max(height(y->left), height(y->right));
+
+		return y;
+	}
+
+	Node* insertNode(Node* itr, int key) {
+		if (!itr) return new Node(key);
+
+		if (key < itr->key)
+			itr->left = insertNode(itr->left, key);
+		else if (key > itr->key)
+			itr->right = insertNode(itr->right, key);
+		else
+			return itr;
+
+		itr->height = 1 + max(height(itr->left), height(itr->right));
+		int balance = getBalance(itr);
+
+		if (balance > 1 && key < itr->left->key)
+			return rightRotate(itr);
+		if (balance < -1 && key > itr->right->key)
+			return leftRotate(itr);
+		if (balance > 1 && key > itr->left->key) {
+			itr->left = leftRotate(itr->left);
+			return rightRotate(itr);
+		}
+		if (balance < -1 && key < itr->right->key) {
+			itr->right = rightRotate(itr->right);
+			return leftRotate(itr);
+		}
+
+		return itr;
+	}
+
+	void preOrder(Node* itr) {
+		if (!itr) return;
+		cout << itr->key << " ";
+		preOrder(itr->left);
+		preOrder(itr->right);
+	}
+
+	int kthSmallestUtil(Node* itr, int k) {
+		if (!itr) return -1;
+
+		int left = kthSmallestUtil(itr->left, k);
+		if (left != -1) return left;
+
+		count++;
+		if (count == k) return itr->key;
+
+		return kthSmallestUtil(itr->right, k);
+	}
+
+	bool areIdentical(Node* itr1, Node* itr2) {
+		if (!itr1 && !itr2) return true;
+		if (!itr1 || !itr2) return false;
+		return (itr1->key == itr2->key) &&
+			areIdentical(itr1->left, itr2->left) &&
+			areIdentical(itr1->right, itr2->right);
+	}
+
+    int getheight(Node *itr){
+        if(!itr) return 0;
+        return itr->height;
+    }
+
+    int getbalance(Node *itr){
+        if(!itr){
+            return 0;
+        }
+        return getheight(itr->left) - getheight(itr->right);
+    }
+
+    Node *leftRotation(Node *itr){
+        Node *child = itr->right;
+        Node *childLeft = child->left;
+        child->left = itr;
+        itr->right = childLeft;
+
+        itr->height = 1 + max(getheight(itr->left),getheight(itr->right));
+        child->height = 1 + max(getheight(child->left),getheight(child->right));
+
+        return child;
+    }
+
+    Node *rightRotation(Node *itr){
+        Node *child = itr->left;
+        Node *childRight = child->right;
+        child->right = itr;
+        itr->left = childRight;
+
+        itr->height = 1 + max(getheight(itr->left),getheight(itr->right));
+        child->height = 1 + max(getheight(child->left),getheight(child->right));
+
+        return child;
+    }
+
+    Node* deleteNode(Node* itr, int key)
+    {
+        if(!itr) return NULL;
+
+        if(key < itr->key){
+            itr->left = deleteNode(itr->left,key);
+        }
+        else if(key > itr->key){
+            itr->right = deleteNode(itr->right,key);
+        }
+        else{
+            if(!itr->left && !itr->right){
+                delete itr;
+                return NULL;
+            }
+            else if(!itr->left && itr->right){
+                Node *temp = itr->right;
+                delete itr;
+                return temp;
+            }
+            else if(itr->left && !itr->right){
+                Node *temp = itr->left;
+                delete itr;
+                return temp;
+            }
+            else{
+                Node *curr = itr->right;
+                while(curr->left){
+                    curr = curr->left;
+                }
+                itr->key = curr->key;
+                itr->right = deleteNode(itr->right,curr->key);
+            }
+        }
+
+        if(!itr) return itr;
+
+        itr->height = 1 + max(getheight(itr->left),getheight(itr->right));
+
+        int balance = getbalance(itr);
+
+        if(balance > 1 && getbalance(itr->left) >= 0){
+            return rightRotation(itr);
+        }
+        if(balance > 1 && getbalance(itr->left) < 0){
+            itr->left = leftRotation(itr->left);
+            return rightRotation(itr);
+        }
+        if(balance < -1 && getbalance(itr->right) <= 0){
+            return leftRotation(itr);
+        }
+        if(balance < -1 && getbalance(itr->right) > 0){
+            itr->right = rightRotation(itr->right);
+            return leftRotation(itr);
+        }
+
+        return itr;
+    }
+
+
+public:
+	AVLTree() {
+		root = nullptr;
+	}
+
+	void insert(int key) {
+		root = insertNode(root, key);
+	}
+
+    void deleteKey(int key) {
+        root = deleteNode(root, key);
+    }
+
+	void display() {
+		cout << "Preorder traversal: ";
+		preOrder(root);
+		cout << endl;
+	}
+
+	int getTreeHeight() {
+		return height(root);
+	}
+
+	int kthSmallest(int k) {
+		count = 0;
+		return kthSmallestUtil(root, k);
+	}
+
+	bool areIdentical(AVLTree& other) {
+		return areIdentical(this->root, other.root);
+	}
+};
+
+void clearInputBuffer() {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+int main() {
+    AVLTree tree;
+    int choice, key, k;
+    AVLTree treeComparison; // For comparison purposes
+
+    do {
+        cout << "\nAVL Tree Menu:\n";
+        cout << "1. Insert element\n";
+        cout << "2. Delete element\n";
+        cout << "3. Display tree (Preorder)\n";
+        cout << "4. Get tree height\n";
+        cout << "5. Find Kth smallest element\n";
+        cout << "6. Compare with another tree (basic check)\n";
+        cout << "7. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if (cin.fail()) {
+            cout << "Invalid input. Please enter a number.\n";
+            cin.clear();
+            clearInputBuffer();
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                cout << "Enter element to insert: ";
+                cin >> key;
+                if (cin.fail()) {
+                    cout << "Invalid input. Please enter an integer.\n";
+                    cin.clear();
+                    clearInputBuffer();
+                    break;
+                }
+                tree.insert(key);
+                cout << key << " inserted.\n";
+                break;
+            case 2:
+                cout << "Enter element to delete: ";
+                cin >> key;
+                if (cin.fail()) {
+                    cout << "Invalid input. Please enter an integer.\n";
+                    cin.clear();
+                    clearInputBuffer();
+                    break;
+                }
+                tree.deleteKey(key);
+                cout << key << " deletion attempted.\n";
+                break;
+            case 3:
+                tree.display();
+                break;
+            case 4:
+                cout << "Height of tree: " << tree.getTreeHeight() << endl;
+                break;
+            case 5:
+                cout << "Enter K to find Kth smallest: ";
+                cin >> k;
+                if (cin.fail()) {
+                    cout << "Invalid input. Please enter an integer.\n";
+                    cin.clear();
+                    clearInputBuffer();
+                    break;
+                }
+                key = tree.kthSmallest(k);
+                if (key != -1) {
+                    cout << k << "th smallest element: " << key << endl;
+                } else {
+                    cout << "K is out of bounds or tree is empty.\n";
+                }
+                break;
+            case 6: {
+                // A very basic comparison. For a full comparison, you'd need to insert elements into treeComparison.
+                cout << "Note: This comparison only works if 'treeComparison' is manually populated elsewhere.\n";
+                cout << "Trees are identical: " << (tree.areIdentical(treeComparison) ? "Yes" : "No") << endl;
+                break;
+            }
+            case 7:
+                cout << "Exiting program.\n";
+                break;
+            default:
+                cout << "Invalid choice. Please try again.\n";
+        }
+        clearInputBuffer(); // Clear the buffer after each input
+    } while (choice != 7);
+
+    return 0;
+}

@@ -1,0 +1,498 @@
+#include<iostream>
+#include<Queue>
+#include<string>
+#include<stack>
+#include<fstream>
+using namespace std;
+class Contact {
+public:
+	string contact_name;
+	string phoneNumber;
+	string email;
+	Contact() = default;
+	void setName(const string& name) {
+		contact_name = name;
+	}
+	void setPhoneNumber(const string& phoneNumber) {
+		this->phoneNumber = phoneNumber;
+	}
+	void setEmail(const string& email) {
+		this->email = email;
+	}
+	string getName() const {
+		return contact_name;
+	}
+	string getPhoneNumber() const {
+		return phoneNumber;
+	}
+	string getEmail() const {
+		return email;
+	}
+	void display() const {
+		cout << "Name: " << contact_name << endl;
+		cout << "Phone Number: " << phoneNumber << endl;
+		cout << "Email: " << email << endl;
+	}
+	void enterdetails(string name, string phoneNumber, string email) {
+		setName(name);
+		setPhoneNumber(phoneNumber);
+		setEmail(email);
+	}
+};
+class Node {
+public:
+	Contact data;
+	Node* next;
+	Node* prev;
+};
+class contactList {
+	Node* head;
+	Node* tail;
+	stack<string> operationHistory;
+	stack<Contact> undoStack; // Stack to keep track of contacts for undo operations
+	stack<Contact> redoStack; // Stack to keep track of contacts for redo operations
+	stack<string> lastUndoOperation;// stack to keep track of last undo operation
+	bool internalCall = false;
+	bool redoBool = false;
+	friend void updateFile(const contactList cl);
+
+	// Function to clear the redo stack and last undo operation stack
+	void clearRedoStack() {
+		while (!redoStack.empty()) {
+			redoStack.pop();
+		}
+		while (!lastUndoOperation.empty())
+		{
+			lastUndoOperation.pop();
+		}
+	}
+
+	
+        string toLowerCase(const string& str) {  
+           string result = str;  
+          
+            for (int i = 0; i < result.length(); ++i) {  
+               result[i] = tolower(result[i]);  
+            }
+             
+           return result;  
+        }
+	
+		// Function to check if a contact with the given phone number exists
+	bool checkContactExists(const string& number) {
+		Node* current = head;
+		while (current) {
+			if (current->data.getPhoneNumber() == number) {
+				return true;
+			}
+			current = current->next;
+		}
+		return false;
+	}
+
+
+public:
+
+	contactList() : head(nullptr), tail(nullptr) {}
+	~contactList() {
+		Node* current = head;
+		while (current) {
+			Node* toDelete = current;
+			current = current->next;
+			delete toDelete;
+		}
+		head = tail = nullptr;
+	}
+
+	// Function to add a contact to the list
+	void addContact(const string& name, const string& phoneNumber, const string& email) {
+		Node* itr = new Node;
+		itr->data.enterdetails(name, phoneNumber, email);
+		itr->next = nullptr;
+		itr->prev = tail;
+		if (tail) {
+			tail->next = itr;
+		}
+		else {
+			head = itr; 
+		}
+		tail = itr; 
+		if (!internalCall) {   //if the user themself adds a contact
+			operationHistory.push("Added contact: " + phoneNumber);
+			undoStack.push(itr->data); 
+			clearRedoStack();
+		}
+		else { //if the function is called internally
+			undoStack.push(itr->data);
+			if (!redoBool) {
+				redoStack.push(itr->data);
+				lastUndoOperation.push("Added contact: " + phoneNumber);
+			}
+			else {
+				operationHistory.push("Added contact: " + phoneNumber);
+			}
+		}
+	}
+	void displayContacts() const {
+		Node* current = head;
+		if (!current) {
+			cout << "No contacts available." << endl;
+			return;
+		}
+		while (current) {
+			current->data.display();
+			current = current->next;
+			cout << "------------------" << endl;
+		}
+	}
+
+	// Function to delete a contact by phone number
+	bool deleteContact(const string& number) {
+		if (!internalCall) {
+			clearRedoStack();
+		}
+		Node* current = head;
+		while (current) {
+			if (current->data.getPhoneNumber() == number) {
+				if (current->prev) {
+					current->prev->next = current->next;
+				}
+				else {
+					head = current->next;
+				}
+				if (current->next) {
+					current->next->prev = current->prev;
+				}
+				else {
+					tail = current->prev;
+				}
+				if (!internalCall) {
+					undoStack.push(current->data);
+					operationHistory.push("Deleted contact: " + number);
+				}
+				if (!redoBool) {
+					redoStack.push(current->data);
+					lastUndoOperation.push("Deleted contact: " + number);
+				}
+				else {
+					operationHistory.push("Deleted contact: " + number);
+				}
+
+				delete current;
+
+				return true;
+			}
+			current = current->next;
+		}
+		return false;
+	}
+	bool updateContact(const string& number, const string& new_name, const string& newPhoneNumber, const string& newEmail) {
+		if (!internalCall) {
+			clearRedoStack();
+		}
+		Node* current = head;
+		while (current) {
+			if (current->data.getPhoneNumber() == number) {
+				if (!internalCall) {
+					undoStack.push(current->data);
+					operationHistory.push("Updated contact: " + newPhoneNumber);
+				}
+				if (!redoBool)
+				{
+					redoStack.push(current->data);
+					lastUndoOperation.push("Updated contact: " + newPhoneNumber);
+				}
+				else {
+					undoStack.push(current->data);
+					operationHistory.push("Updated contact: " + newPhoneNumber);
+				}
+				current->data.setName(new_name);
+				current->data.setPhoneNumber(newPhoneNumber);
+				current->data.setEmail(newEmail);
+				return true;
+			}
+			current = current->next;
+		}
+		return false;
+	}
+	void helperdisplayOperationHistory(stack<string>& operation) const {
+		if (operation.empty())
+		{
+			return;
+		}
+		string currentOperation = operation.top();
+		operation.pop();
+		helperdisplayOperationHistory(operation);
+		cout << currentOperation << endl;
+	}
+	void displayOperationHistory() const {
+		stack<string> tempOp = operationHistory;
+		if (tempOp.empty()) {
+			cout << "No operations performed yet." << endl;
+			return;
+		}
+		else {
+			helperdisplayOperationHistory(tempOp);
+		}
+	}
+	bool undoLastOperation() {
+		if (operationHistory.empty()) {
+			return false;
+		}
+		internalCall = true;
+		string lastOperation = operationHistory.top();
+		lastUndoOperation.push(lastOperation); // Store the last operation for potential redo
+		operationHistory.pop();
+		if (lastOperation.find("Added contact: ") == 0) {
+			string number = lastOperation.substr(16);
+			deleteContact(number);
+			redoStack.push(undoStack.top()); // Push the contact onto the redo stack
+			undoStack.pop(); // Remove the contact from the undo stack after deletion
+			internalCall = false;
+		}
+		else if (lastOperation.find("Deleted contact: ") == 0) {
+			string number = lastOperation.substr(17);
+			cout << "Undoing deletion of contact: " << number << endl;
+			addContact(undoStack.top().getName(), undoStack.top().getPhoneNumber(), undoStack.top().getEmail());
+			redoStack.push(undoStack.top()); // Push the contact onto the redo stack
+			undoStack.pop(); // Remove the contact from the undo stack after adding it back
+			internalCall = false;
+		}
+		else if (lastOperation.find("Updated contact: ") == 0) {
+			string number = lastOperation.substr(17);
+			cout << "Undoing update of contact: " << number << endl;
+			updateContact(number, undoStack.top().getName(), undoStack.top().getPhoneNumber(), undoStack.top().getEmail());
+			undoStack.pop(); // Remove the contact from the undo stack after updating it back
+			internalCall = false;
+		}
+		return true;
+	}
+	bool redoLastOperation() {
+		if (redoStack.empty()) {
+			return false;
+		}
+		string lastUndo = lastUndoOperation.top();
+		operationHistory.push(lastUndo); // Reapply the last undone operation
+		lastUndoOperation.pop();
+		internalCall = true;
+		if (lastUndo.find("Added contact: ") == 0) {
+			string number = lastUndo.substr(16);
+			addContact(redoStack.top().getName(), redoStack.top().getPhoneNumber(), redoStack.top().getEmail());
+			undoStack.push(redoStack.top()); // Push the contact onto the undo stack
+			redoStack.pop(); // Remove the contact from the redo stack after re-adding it
+			internalCall = false;
+		}
+		else if (lastUndo.find("Deleted contact: ") == 0) {
+			string number = lastUndo.substr(17);
+			deleteContact(number);
+			undoStack.push(redoStack.top()); // Push the contact onto the undo stack
+			redoStack.pop(); // Remove the contact from the redo stack after deleting it
+			internalCall = false;
+		}
+		else if (lastUndo.find("Updated contact: ") == 0) {
+			string number = lastUndo.substr(17);
+			redoBool = true;
+			updateContact(number, redoStack.top().getName(), redoStack.top().getPhoneNumber(), redoStack.top().getEmail());
+			redoStack.pop(); // Remove the contact from the redo stack after updating it back
+			internalCall = false;
+			redoBool = false;
+		}
+		return true;
+
+	}
+
+
+
+
+
+};
+void readContactFromFile(contactList& cl)
+{
+	ifstream fin;
+	fin.open("Contacts.txt");
+	if (!fin) {
+		cout << "Error opening file." << endl;
+		return;
+	}
+	string fname, lname, number, email;
+	while (fin >> fname >> lname >> number >> email) {
+		string fullName = fname + " " + lname;
+		cl.addContact(fullName, number, email);
+	}
+	fin.close();
+}
+void updateFile(const contactList cl) {
+	ofstream fout;
+	fout.open("Contacts.txt");
+	if (!fout) {
+		cout << "Error opening file." << endl;
+		return;
+	}
+	Node* current = cl.head;
+	while (current) {
+		fout << current->data.getName() << " "
+			<< current->data.getPhoneNumber() << " "
+			<< current->data.getEmail() << endl;
+		current = current->next;
+	}
+	fout.close();
+}
+bool isValidPhoneNumber(const string& number) {
+	if (number.length() < 12) return false;
+	for (char ch : number) {
+		if (!isdigit(ch)) return false;
+	}
+	return true;
+}
+
+int main() {
+	contactList cl;
+	readContactFromFile(cl);
+
+	int choice;
+	string fname, lname, phone, email, newFname, newLname, newPhone, newEmail;
+	string continueChoice;
+
+	while (true) {
+		cout << "\n===== Contact Manager Menu =====" << endl;
+		cout << "1. Add Contact" << endl;
+		cout << "2. Delete Contact" << endl;
+		cout << "3. Update Contact" << endl;
+		cout << "4. Display All Contacts" << endl;
+		cout << "5. Undo Last Operation" << endl;
+		cout << "6. Redo Last Operation" << endl;
+		cout << "7. Display Operation History" << endl;
+		cout << "8. Exit" << endl;
+		cout << "Enter your choice: ";
+		cin >> choice;
+		cin.ignore();
+
+		switch (choice) {
+		case 1:
+			cout << "Enter first name: ";
+			getline(cin, fname);
+			cout << "Enter last name: ";
+			getline(cin, lname);
+			cout << "Enter phone number: ";
+			while (true)
+			{
+				getline(cin, phone);
+				if (isValidPhoneNumber(phone)) {
+					break;
+				}
+				else {
+					cout << "Invalid phone number. Please enter a valid 12-digit number: ";
+				}
+			}
+			cout << "Enter email: ";
+			getline(cin, email);
+			cl.addContact(fname + " " + lname, phone, email);
+			cout << "Contact added successfully." << endl;
+			break;
+
+		case 2:
+			cout << "Enter phone number of contact to delete: ";
+			while (true)
+			{
+				getline(cin, phone);
+				if (isValidPhoneNumber(phone)) {
+					break;
+				}
+				else {
+					cout << "Invalid phone number. Please enter a valid 12-digit number: ";
+				}
+			}
+			if (cl.deleteContact(phone))
+				cout << "Contact deleted successfully." << endl;
+			else
+				cout << "Contact not found." << endl;
+			break;
+
+		case 3:
+			cout << "Enter current phone number of contact to update: ";
+			while (true)
+			{
+				getline(cin, phone);
+				if (isValidPhoneNumber(phone)) {
+					break;
+				}
+				else {
+					cout << "Invalid phone number. Please enter a valid 12-digit number: ";
+				}
+			}
+			cout << "Enter new first name: ";
+			getline(cin, newFname);
+			cout << "Enter new last name: ";
+			getline(cin, newLname);
+			cout << "Enter new phone number: ";
+			while (true)
+			{
+				getline(cin, phone);
+				if (isValidPhoneNumber(phone)) {
+					break;
+				}
+				else {
+					cout << "Invalid phone number. Please enter a valid 12-digit number: ";
+				}
+			}
+			cout << "Enter new email: ";
+			getline(cin, newEmail);
+			if (cl.updateContact(phone, newFname + " " + newLname, newPhone, newEmail))
+				cout << "Contact updated successfully." << endl;
+			else
+				cout << "Contact not found." << endl;
+			break;
+
+		case 4:
+			cl.displayContacts();
+			break;
+
+		case 5:
+			if (cl.undoLastOperation())
+				cout << "Undo successful." << endl;
+			else
+				cout << "Nothing to undo." << endl;
+			break;
+
+		case 6:
+			if (cl.redoLastOperation())
+				cout << "Redo successful." << endl;
+			else
+				cout << "Nothing to redo." << endl;
+			break;
+
+		case 7:
+			cout << "Operation History:\n";
+			cl.displayOperationHistory();
+			break;
+
+		case 8:
+			updateFile(cl);
+			cout << "Contacts saved. Exiting..." << endl;
+			return 0;
+
+		default:
+			cout << "Invalid choice. Try again." << endl;
+		}
+
+		cout << "\nDo you wish to continue? (yes/no): ";
+		getline(cin, continueChoice);
+
+		if (continueChoice == "no" || continueChoice == "No" || continueChoice == "NO") {
+			updateFile(cl);
+			cout << "Contacts saved. Exiting..." << endl;
+			break;
+		}
+		else if (continueChoice == "yes" || continueChoice == "Yes" || continueChoice == "YES") {
+			system("cls");
+		}
+		else {
+			cout << "Invalid input. Exiting for safety." << endl;
+			updateFile(cl);
+			break;
+		}
+	}
+
+	return 0;
+}
+
